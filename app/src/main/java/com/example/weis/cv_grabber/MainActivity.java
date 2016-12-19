@@ -2,10 +2,7 @@ package com.example.weis.cv_grabber;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.Dialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -14,17 +11,13 @@ import android.hardware.Camera;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
-import android.preference.ListPreference;
 import android.preference.PreferenceManager;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.util.Size;
 import android.view.View;
 import android.widget.Button;
-import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
@@ -32,13 +25,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.lang.reflect.Array;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
-import static android.R.attr.id;
 import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE;
 import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO;
 
@@ -115,11 +103,6 @@ public class MainActivity extends Activity {
         );
 
 
-        /*
-         * FIXME: this is all asynchronous, so WHILE the user gets asked for permission,
-         * the program continues to run and crashes.
-         * Temporary "fix": install, run, let it crash. Go to Settings->Apps and assign the permission by hand
-         */
         if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED ||
                 ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
                 ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
@@ -137,7 +120,6 @@ public class MainActivity extends Activity {
 
     /* start camera preview and enable button */
     private void startMain(){
-        // Create an instance of Camera
         mCamera = getCameraInstance();
 
         parameters = mCamera.getParameters();
@@ -152,33 +134,6 @@ public class MainActivity extends Activity {
             mCamera.setParameters(parameters);
             Toast.makeText(this, "Set image resolution to " + width + "x" + height, Toast.LENGTH_LONG);
         }
-
-        /*
-        // get available cam parameters
-        parameters = mCamera.getParameters();
-
-        final List<android.hardware.Camera.Size> sizes = parameters.getSupportedPictureSizes();
-        // List dialog to select resolution
-        List<String> itemslist = new ArrayList<String>();
-        for (android.hardware.Camera.Size size : sizes) {
-            itemslist.add(size.width + "x" + size.height);
-        }
-        final CharSequence[] items = itemslist.toArray(new CharSequence[itemslist.size()]);
-        //final CharSequence[] items = {"640x480", "720x360", "1920x1080"};
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Available resolutions");
-        builder.setItems(items, new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int item) {
-                // Do something with the selection
-                Log.d("Res selection", "Value: " + items[item]);
-                p_picture_size = sizes.get(item);
-                parameters.setPictureSize(p_picture_size.width, p_picture_size.height);
-                mCamera.setParameters(parameters);
-            }
-        });
-        AlertDialog alert = builder.create();
-        alert.show();
-        */
 
         // Create Preview view and set it as the content of our activity.
         // this HAS to be done in order to able to take pictures (WTF?!)
@@ -215,18 +170,6 @@ public class MainActivity extends Activity {
             handler.postDelayed(runnable, 1);
         }
     };
-
-
-    /** Check if this device has a camera */
-    private boolean checkCameraHardware(Context context) {
-        if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)){
-            // this device has a camera
-            return true;
-        } else {
-            // no camera on this device
-            return false;
-        }
-    }
 
     /** A safe way to get an instance of the Camera object. */
     public static Camera getCameraInstance(){

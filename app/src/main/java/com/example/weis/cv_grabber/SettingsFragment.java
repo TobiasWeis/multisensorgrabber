@@ -48,8 +48,7 @@ public class SettingsFragment extends PreferenceFragment {
         final CharSequence[] values = valueslist.toArray(new CharSequence[valueslist.size()]);
 
         final ListPreference lp = (ListPreference) findPreference("pref_resolutions");
-        //CharSequence[] entries = { "English", "French" };
-        //CharSequence[] entryValues = {"1" , "2"};
+
         lp.setEntries(entries);
         lp.setDefaultValue("0");
         lp.setEntryValues(values);

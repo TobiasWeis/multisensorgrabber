@@ -16,7 +16,7 @@ to create low-cost, mobile sequence capturing devices.
 * Saving of image frames every 100ms
 
 ## TODO
-* Settings Activity?
+* ~~Settings Activity?~~
 * choose framerate (and implement)
 * gps grabbing
 * accel/gyro grabbing
