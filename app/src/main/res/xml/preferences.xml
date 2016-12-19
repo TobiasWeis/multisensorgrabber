@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <CheckBoxPreference
+    android:key="pref_sync"
+    android:title="CheckboxStuff"
+    android:summary="Irgendeinstring"
+    android:defaultValue="true" />
+
+    <ListPreference
+        android:dependency="pref_sync"
+        android:key="pref_resolutions"
+        android:title="@string/settings_res_title"
+        android:dialogTitle="@string/settings_res_title"
+        android:entries="@array/settings_res_entries"
+        android:entryValues="@array/settings_res_values"
+        android:defaultValue="@string/settings_res_default_value" />
+</PreferenceScreen>

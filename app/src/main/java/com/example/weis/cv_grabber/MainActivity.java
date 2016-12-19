@@ -6,12 +6,16 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.hardware.Camera;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
+import android.preference.ListPreference;
+import android.preference.PreferenceManager;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -22,6 +26,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -47,6 +52,7 @@ public class MainActivity extends Activity {
     private Handler handler = new Handler();
 
     android.hardware.Camera.Size p_picture_size;
+    Camera.Parameters parameters;
 
     private Runnable runnable = new Runnable() {
         @Override
@@ -54,6 +60,12 @@ public class MainActivity extends Activity {
             mCamera.takePicture(null, null, mPicture);
         }
     };
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        startMain();
+    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
@@ -69,6 +81,17 @@ public class MainActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        final Button settingsButton = (Button) findViewById(R.id.button_settings);
+        settingsButton.setOnClickListener(
+                new android.view.View.OnClickListener(){
+                    @Override
+                    public void onClick(View v){
+                        Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
+                        startActivity(intent);
+                    }
+                }
+        );
 
         final Button captureButton = (Button) findViewById(R.id.button_capture);
         captureButton.setBackgroundColor(Color.GREEN);
@@ -116,14 +139,25 @@ public class MainActivity extends Activity {
     private void startMain(){
         // Create an instance of Camera
         mCamera = getCameraInstance();
-        // get available cam parameters
-        final Camera.Parameters params = mCamera.getParameters();
 
-            /*
-             * user selection of resultion
-             */
-        // Check what resolutions are supported by your camera
-        final List<android.hardware.Camera.Size> sizes = params.getSupportedPictureSizes();
+        parameters = mCamera.getParameters();
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        String selected = prefs.getString("pref_resolutions", ""); // this gives the value
+        Log.d("---", "Selected resolution index was: |" + selected + "|" );
+        if (selected != "") {
+            final List<android.hardware.Camera.Size> sizes = parameters.getSupportedPictureSizes();
+            Integer width = sizes.get(Integer.parseInt(selected)).width;
+            Integer height = sizes.get(Integer.parseInt(selected)).height;
+            parameters.setPictureSize(width, height);
+            mCamera.setParameters(parameters);
+            Toast.makeText(this, "Set image resolution to " + width + "x" + height, Toast.LENGTH_LONG);
+        }
+
+        /*
+        // get available cam parameters
+        parameters = mCamera.getParameters();
+
+        final List<android.hardware.Camera.Size> sizes = parameters.getSupportedPictureSizes();
         // List dialog to select resolution
         List<String> itemslist = new ArrayList<String>();
         for (android.hardware.Camera.Size size : sizes) {
@@ -138,12 +172,13 @@ public class MainActivity extends Activity {
                 // Do something with the selection
                 Log.d("Res selection", "Value: " + items[item]);
                 p_picture_size = sizes.get(item);
-                params.setPictureSize(p_picture_size.width, p_picture_size.height);
-                mCamera.setParameters(params);
+                parameters.setPictureSize(p_picture_size.width, p_picture_size.height);
+                mCamera.setParameters(parameters);
             }
         });
         AlertDialog alert = builder.create();
         alert.show();
+        */
 
         // Create Preview view and set it as the content of our activity.
         // this HAS to be done in order to able to take pictures (WTF?!)
