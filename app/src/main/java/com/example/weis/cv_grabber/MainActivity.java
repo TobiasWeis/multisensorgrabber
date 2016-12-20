@@ -13,6 +13,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.preference.PreferenceManager;
@@ -47,6 +48,8 @@ public class MainActivity extends Activity {
     int _framerate = 10;
     long _ts_lastframe = 0;
     static String _last_fname = "";
+    static long _ts_lastpic = 0;
+    static long _seq_timestamp = 0;
 
     boolean recording = false;
     private Handler handler = new Handler();
@@ -86,6 +89,11 @@ public class MainActivity extends Activity {
                         serializer.attribute(null, "lat", ""+_loc.getLatitude());
                         serializer.attribute(null, "lon", ""+_loc.getLongitude());
                         serializer.attribute(null, "acc", ""+ _loc.getAccuracy());
+                        serializer.attribute(null, "img_w", ""+parameters.getPictureSize().width);
+                        serializer.attribute(null, "img_h", ""+parameters.getPictureSize().height);
+                        serializer.attribute(null, "speed", ""+_loc.getSpeed());
+                        serializer.attribute(null, "ts_cam", ""+_ts_lastpic);
+
                         serializer.endTag(null, "Frame");
                         serializer.flush();
                     }catch(IOException e){
@@ -177,6 +185,10 @@ public class MainActivity extends Activity {
                                 serializer.startDocument(null, Boolean.valueOf(true));
                                 serializer.setFeature("http://xmlpull.org/v1/doc/features.html#indent-output", true);
                                 serializer.startTag(null, "sequence");
+                                String manufacturer = Build.MANUFACTURER;
+                                String model = Build.MODEL;
+                                serializer.attribute(null, "sensor", manufacturer+model);
+                                serializer.attribute(null, "ts", ""+_seq_timestamp);
                             }catch(FileNotFoundException e){
                                 Log.e("fileos", "Exception: file not found");
                             }catch(IOException e){
@@ -190,7 +202,7 @@ public class MainActivity extends Activity {
                             handler.removeCallbacks(runnable);
                             recording = false;
                             try {
-                                serializer.startTag(null, "sequence");
+                                serializer.endTag(null, "sequence");
                                 serializer.flush();
                             } catch (IOException e) {
                                 e.printStackTrace();
@@ -303,9 +315,9 @@ public class MainActivity extends Activity {
     private CameraPreview mPreview;
 
     private static void setSequenceDirectory(){
-        long timeStamp = System.currentTimeMillis();
+        _seq_timestamp = System.currentTimeMillis();
         _mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_PICTURES), "multisensorgrabber_" + timeStamp);
+                Environment.DIRECTORY_PICTURES), "multisensorgrabber_" + _seq_timestamp);
         if (! _mediaStorageDir.exists()){
             if (! _mediaStorageDir.mkdirs()){
                 Log.d("MyCameraApp", "failed to create directory");
@@ -322,6 +334,7 @@ public class MainActivity extends Activity {
             mediaFile = new File(_mediaStorageDir.getPath() + File.separator +
                     "IMG_"+ timeStamp + ".jpg");
             _last_fname = mediaFile.getAbsolutePath();
+            _ts_lastpic = timeStamp;
         } else if(ending == "xml") {
             mediaFile = new File(_mediaStorageDir.getPath() + File.separator +
                     timeStamp + ".xml");
