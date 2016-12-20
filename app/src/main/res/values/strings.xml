@@ -14,4 +14,22 @@
 
     <string name="settings_res_default_value">0</string>
 
+    <string name="settings_fr_title">Framerate</string>
+    <string-array name="settings_fr_entries">
+        <item>10</item>
+        <item>15</item>
+        <item>20</item>
+        <item>25</item>
+        <item>30</item>
+    </string-array>
+    <string-array name="settings_fr_values">
+        <item>10</item>
+        <item>15</item>
+        <item>20</item>
+        <item>25</item>
+        <item>30</item>
+    </string-array>
+    <string name="settings_fr_default_value">10</string>
+
+
 </resources>

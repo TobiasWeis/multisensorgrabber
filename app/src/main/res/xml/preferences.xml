@@ -7,11 +7,21 @@
     android:defaultValue="true" />
 
     <ListPreference
-        android:dependency="pref_sync"
         android:key="pref_resolutions"
         android:title="@string/settings_res_title"
         android:dialogTitle="@string/settings_res_title"
         android:entries="@array/settings_res_entries"
         android:entryValues="@array/settings_res_values"
-        android:defaultValue="@string/settings_res_default_value" />
+        android:defaultValue="@string/settings_res_default_value"
+        android:summary="%s"/>
+
+    <ListPreference
+        android:key="pref_framerates"
+        android:summary="%s"
+        android:title="@string/settings_fr_title"
+        android:dialogTitle="@string/settings_fr_title"
+        android:entries="@array/settings_fr_entries"
+        android:entryValues="@array/settings_fr_values"
+        android:defaultValue="@string/settings_fr_default_value" />
+
 </PreferenceScreen>

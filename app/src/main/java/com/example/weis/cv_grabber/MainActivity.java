@@ -8,6 +8,10 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.hardware.Camera;
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
@@ -19,6 +23,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
@@ -36,23 +41,63 @@ public class MainActivity extends Activity {
     /* stupid android 6.0 permission management sucks */
     int MY_PERMISSION_REQUEST = 1;
 
+    int _framerate = 10;
+    long _ts_lastframe = 0;
+
     boolean recording = false;
     private Handler handler = new Handler();
 
     android.hardware.Camera.Size p_picture_size;
     Camera.Parameters parameters;
 
+    TextView textview_coords;
+    LocationManager mLocationManager;
+    Criteria criteria = new Criteria();
+    String bestProvider;
+    android.location.Location _loc;
+    boolean _pic_returned = true;
+
     private Runnable runnable = new Runnable() {
         @Override
         public void run() {
-            mCamera.takePicture(null, null, mPicture);
+            if (_pic_returned == true) { // check if picture-take-callback has returned already
+                if (System.currentTimeMillis() - _ts_lastframe >= (1. / _framerate) * 1000.) {
+                    Log.d("Timecalc", "Diff: " + (System.currentTimeMillis() - _ts_lastframe));
+                    _pic_returned = false;
+                    try {
+                        mCamera.takePicture(null, null, mPicture);
+                    }catch(Exception e){
+                        Log.e("TakePicture", "Exception: ", e);
+                    }
+                    bestProvider = mLocationManager.getBestProvider(criteria, false);
+                    _loc = mLocationManager.getLastKnownLocation(bestProvider);
+                    try {
+                        textview_coords.setText("Coordinates: " + _loc.getLatitude() + ", " + _loc.getLongitude());
+                    } catch (Exception e) {
+                        Log.e("Textview", "Exception: " + e);
+                    }
+                    _ts_lastframe = System.currentTimeMillis();
+                }
+            }
+            handler.postDelayed(runnable, 1);
         }
     };
 
     @Override
     protected void onResume() {
         super.onResume();
+        Log.d("onResume", "---------------------------- startMain");
         startMain();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (mCamera != null) {
+            mCamera.stopPreview();
+            mCamera.release();
+            mCamera = null;
+        }
     }
 
     @Override
@@ -61,8 +106,16 @@ public class MainActivity extends Activity {
         if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
                 ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
                 ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+            Log.d("onRequestPermisstion", "---------------------------- startMain");
             startMain();
         }
+    };
+
+    final LocationListener locationListener = new LocationListener() {
+        public void onLocationChanged(Location location) {}
+        public void onProviderDisabled(String provider){}
+        public void onProviderEnabled(String provider){ }
+        public void onStatusChanged(String provider, int status, Bundle extras){ }
     };
 
     @Override
@@ -83,6 +136,13 @@ public class MainActivity extends Activity {
 
         final Button captureButton = (Button) findViewById(R.id.button_capture);
         captureButton.setBackgroundColor(Color.GREEN);
+
+        textview_coords = (TextView) findViewById(R.id.textview_coords);
+
+        mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        bestProvider = mLocationManager.getBestProvider(criteria, false);
+        mLocationManager.requestLocationUpdates(bestProvider, 10,10, locationListener);
+
 
         captureButton.setOnClickListener(
                 new android.view.View.OnClickListener() {
@@ -114,6 +174,7 @@ public class MainActivity extends Activity {
                     Manifest.permission.WRITE_EXTERNAL_STORAGE }, MY_PERMISSION_REQUEST);
         }else {
             Log.d("main", "Already have permission, not asking");
+            Log.d("gotPermissions", "---------------------------- startMain");
             startMain();
         }
     }
@@ -124,15 +185,22 @@ public class MainActivity extends Activity {
 
         parameters = mCamera.getParameters();
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        String selected = prefs.getString("pref_resolutions", ""); // this gives the value
-        Log.d("---", "Selected resolution index was: |" + selected + "|" );
-        if (selected != "") {
+
+        String selected_res = prefs.getString("pref_resolutions", ""); // this gives the value
+        Log.d("---", "Selected resolution index was: |" + selected_res + "|" );
+        if (selected_res != "") {
             final List<android.hardware.Camera.Size> sizes = parameters.getSupportedPictureSizes();
-            Integer width = sizes.get(Integer.parseInt(selected)).width;
-            Integer height = sizes.get(Integer.parseInt(selected)).height;
+            Integer width = sizes.get(Integer.parseInt(selected_res)).width;
+            Integer height = sizes.get(Integer.parseInt(selected_res)).height;
             parameters.setPictureSize(width, height);
             mCamera.setParameters(parameters);
-            Toast.makeText(this, "Set image resolution to " + width + "x" + height, Toast.LENGTH_LONG);
+            Log.d("Settings", "Set image resolution to " + width + "x" + height);
+        }
+
+        String selected_fr = prefs.getString("pref_framerates", "");
+        if (selected_fr != ""){
+            _framerate = Integer.parseInt(selected_fr);
+            Log.d("Settings", "Set framerate to " + _framerate);
         }
 
         // Create Preview view and set it as the content of our activity.
@@ -140,6 +208,10 @@ public class MainActivity extends Activity {
         mPreview = new CameraPreview(this, mCamera);
         RelativeLayout preview = (RelativeLayout) findViewById(R.id.camera_preview);
         preview.addView(mPreview);
+
+        /*********************************** GPS ************************/
+        mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        //mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 10, 10, mLocationListener);
 
     }
 
@@ -159,6 +231,7 @@ public class MainActivity extends Activity {
                 FileOutputStream fos = new FileOutputStream(pictureFile);
                 fos.write(data);
                 fos.close();
+                _pic_returned = true;
             } catch (FileNotFoundException e) {
                 Log.d(TAG, "File not found: " + e.getMessage());
             } catch (IOException e) {
@@ -167,7 +240,6 @@ public class MainActivity extends Activity {
             /* restart the picture-taking from here,
              * b/c we have to wait for the callback to finish
              */
-            handler.postDelayed(runnable, 1);
         }
     };
 

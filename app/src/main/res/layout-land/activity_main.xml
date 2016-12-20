@@ -34,4 +34,10 @@
         android:layout_alignParentEnd="true"
         android:layout_marginBottom="28dp" />
 
+    <TextView
+        android:id="@+id/textview_coords"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Coordinates:  "/>
+
 </RelativeLayout>
