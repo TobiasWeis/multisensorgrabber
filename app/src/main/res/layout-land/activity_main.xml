@@ -38,6 +38,7 @@
         android:id="@+id/textview_coords"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Coordinates:  "/>
+        android:text="Coordinates:  "
+        android:textColor="#00ff00"/>
 
 </RelativeLayout>

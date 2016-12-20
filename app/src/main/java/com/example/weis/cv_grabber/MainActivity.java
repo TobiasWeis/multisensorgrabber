@@ -20,11 +20,14 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.Xml;
 import android.view.View;
 import android.widget.Button;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import org.xmlpull.v1.XmlSerializer;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -43,9 +46,13 @@ public class MainActivity extends Activity {
 
     int _framerate = 10;
     long _ts_lastframe = 0;
+    static String _last_fname = "";
 
     boolean recording = false;
     private Handler handler = new Handler();
+    FileOutputStream fileos;
+    XmlSerializer serializer = Xml.newSerializer();
+    static File _mediaStorageDir; // sequence directory
 
     android.hardware.Camera.Size p_picture_size;
     Camera.Parameters parameters;
@@ -71,10 +78,18 @@ public class MainActivity extends Activity {
                     }
                     bestProvider = mLocationManager.getBestProvider(criteria, false);
                     _loc = mLocationManager.getLastKnownLocation(bestProvider);
+
+                    textview_coords.setText("Coordinates: " + _loc.getLatitude() + ", " + _loc.getLongitude() + ", Acc:" + _loc.getAccuracy());
                     try {
-                        textview_coords.setText("Coordinates: " + _loc.getLatitude() + ", " + _loc.getLongitude());
-                    } catch (Exception e) {
-                        Log.e("Textview", "Exception: " + e);
+                        serializer.startTag(null, "Frame");
+                        serializer.attribute(null, "uri", _last_fname);
+                        serializer.attribute(null, "lat", ""+_loc.getLatitude());
+                        serializer.attribute(null, "lon", ""+_loc.getLongitude());
+                        serializer.attribute(null, "acc", ""+ _loc.getAccuracy());
+                        serializer.endTag(null, "Frame");
+                        serializer.flush();
+                    }catch(IOException e){
+                        Log.e("serializer", "IOException: " + e);
                     }
                     _ts_lastframe = System.currentTimeMillis();
                 }
@@ -129,6 +144,11 @@ public class MainActivity extends Activity {
                     @Override
                     public void onClick(View v){
                         Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
+                        if (mCamera != null) {
+                            mCamera.stopPreview();
+                            mCamera.release();
+                            mCamera = null;
+                        }
                         startActivity(intent);
                     }
                 }
@@ -150,12 +170,36 @@ public class MainActivity extends Activity {
                     public void onClick(View v) {
                         if (!recording) {
                             // get an image from the camera
+                            try {
+                                setSequenceDirectory();
+                                fileos = new FileOutputStream(getOutputMediaFile("xml"));
+                                serializer.setOutput(fileos, "UTF-8");
+                                serializer.startDocument(null, Boolean.valueOf(true));
+                                serializer.setFeature("http://xmlpull.org/v1/doc/features.html#indent-output", true);
+                                serializer.startTag(null, "sequence");
+                            }catch(FileNotFoundException e){
+                                Log.e("fileos", "Exception: file not found");
+                            }catch(IOException e){
+                                Log.e("serializer", "IOException: " + e);
+                            }
+
                             handler.postDelayed(runnable, 100);
                             recording = true;
                             captureButton.setBackgroundColor(Color.RED);
                         }else{
                             handler.removeCallbacks(runnable);
                             recording = false;
+                            try {
+                                serializer.startTag(null, "sequence");
+                                serializer.flush();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                            try {
+                                fileos.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
                             captureButton.setBackgroundColor(Color.GREEN);
                         }
                     }
@@ -221,7 +265,7 @@ public class MainActivity extends Activity {
         @Override
         public void onPictureTaken(byte[] data, Camera camera) {
 
-            File pictureFile = getOutputMediaFile(MEDIA_TYPE_IMAGE);
+            File pictureFile = getOutputMediaFile("jpg");
             if (pictureFile == null){
                 Log.d(TAG, "Error creating media file, check storage permissions: ");
                 return;
@@ -258,38 +302,29 @@ public class MainActivity extends Activity {
     private Camera mCamera;
     private CameraPreview mPreview;
 
-    private static Uri getOutputMediaFileUri(int type){
-        return Uri.fromFile(getOutputMediaFile(type));
+    private static void setSequenceDirectory(){
+        long timeStamp = System.currentTimeMillis();
+        _mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_PICTURES), "multisensorgrabber_" + timeStamp);
+        if (! _mediaStorageDir.exists()){
+            if (! _mediaStorageDir.mkdirs()){
+                Log.d("MyCameraApp", "failed to create directory");
+            }
+        }
     }
 
     /** Create a File for saving an image or video */
-    private static File getOutputMediaFile(int type){
-        // To be safe, you should check that the SDCard is mounted
-        // using Environment.getExternalStorageState() before doing this.
-
-        File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_PICTURES), "MyCameraApp");
-        // This location works best if you want the created images to be shared
-        // between applications and persist after your app has been uninstalled.
-
-        // Create the storage directory if it does not exist
-        if (! mediaStorageDir.exists()){
-            if (! mediaStorageDir.mkdirs()){
-                Log.d("MyCameraApp", "failed to create directory");
-                return null;
-            }
-        }
-
-        // Create a media file name
+    private static File getOutputMediaFile(String ending){
         //String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         long timeStamp = System.currentTimeMillis();
         File mediaFile;
-        if (type == MEDIA_TYPE_IMAGE){
-            mediaFile = new File(mediaStorageDir.getPath() + File.separator +
+        if (ending == "jpg"){
+            mediaFile = new File(_mediaStorageDir.getPath() + File.separator +
                     "IMG_"+ timeStamp + ".jpg");
-        } else if(type == MEDIA_TYPE_VIDEO) {
-            mediaFile = new File(mediaStorageDir.getPath() + File.separator +
-                    "VID_"+ timeStamp + ".mp4");
+            _last_fname = mediaFile.getAbsolutePath();
+        } else if(ending == "xml") {
+            mediaFile = new File(_mediaStorageDir.getPath() + File.separator +
+                    timeStamp + ".xml");
         } else {
             return null;
         }
