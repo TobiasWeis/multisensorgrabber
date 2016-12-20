@@ -17,7 +17,7 @@ to create low-cost, mobile sequence capturing devices.
 
 ## TODO
 * ~~Settings Activity?~~
-* choose framerate (and implement)
-* gps grabbing
+* ~~choose framerate (and implement)~~
+* ~~gps grabbing~~
 * accel/gyro grabbing
-* Saving: xml/sqlite ?
+* Saving: ~~xml~~/sqlite ?
