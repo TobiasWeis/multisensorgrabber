@@ -8,12 +8,11 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent">
 
-
-
 </RelativeLayout>
 
-    <Button
+    <ImageButton
         android:id="@+id/button_settings"
+        android:src="@mipmap/button_icon_settings"
         android:text=" Settings "
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -22,17 +21,17 @@
         android:layout_toLeftOf="@+id/button_capture"
         android:layout_toStartOf="@+id/button_capture" />
 
-    <Button
+    <ImageButton
         android:id="@+id/button_capture"
-        android:text=" Capture "
+        android:src="@mipmap/button_icon_rec"
+        android:text=" RECORD "
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginRight="33dp"
-        android:layout_marginEnd="33dp"
+        android:layout_marginBottom="10dp"
+        android:layout_marginRight="10dp"
         android:layout_alignParentBottom="true"
         android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true"
-        android:layout_marginBottom="28dp" />
+        android:layout_alignParentEnd="true" />
 
     <TextView
         android:id="@+id/textview_coords"
@@ -41,4 +40,12 @@
         android:text="Coordinates:  "
         android:textColor="#00ff00"/>
 
+    <TextView
+        android:id="@+id/textview_fps"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="FPS: 0"
+        android:textColor="#00ff00"
+        android:layout_below="@id/textview_coords"
+         />
 </RelativeLayout>

@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.hardware.Camera;
 import android.location.Criteria;
 import android.location.Location;
@@ -24,6 +25,7 @@ import android.util.Log;
 import android.util.Xml;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -35,9 +37,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
-
-import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE;
-import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO;
 
 public class MainActivity extends Activity {
     private static final String TAG = "MainActivity";
@@ -61,18 +60,23 @@ public class MainActivity extends Activity {
     Camera.Parameters parameters;
 
     TextView textview_coords;
+    TextView textview_fps;
+
     LocationManager mLocationManager;
     Criteria criteria = new Criteria();
     String bestProvider;
     android.location.Location _loc;
     boolean _pic_returned = true;
 
+    boolean _main_runs = false;
+
     private Runnable runnable = new Runnable() {
         @Override
         public void run() {
             if (_pic_returned == true) { // check if picture-take-callback has returned already
-                if (System.currentTimeMillis() - _ts_lastframe >= (1. / _framerate) * 1000.) {
-                    Log.d("Timecalc", "Diff: " + (System.currentTimeMillis() - _ts_lastframe));
+                double diff = System.currentTimeMillis() - _ts_lastframe;
+                if (diff >= (1. / _framerate) * 1000.) {
+                    Log.d("Timecalc", "Diff: " + diff);
                     _pic_returned = false;
                     try {
                         mCamera.takePicture(null, null, mPicture);
@@ -82,7 +86,11 @@ public class MainActivity extends Activity {
                     bestProvider = mLocationManager.getBestProvider(criteria, false);
                     _loc = mLocationManager.getLastKnownLocation(bestProvider);
 
+                    // unsmoothed
+                    double fps = 1000. / diff;
+
                     textview_coords.setText("Coordinates: " + _loc.getLatitude() + ", " + _loc.getLongitude() + ", Acc:" + _loc.getAccuracy());
+                    textview_fps.setText(String.format( "FPS: %.1f", fps ));
                     try {
                         serializer.startTag(null, "Frame");
                         serializer.attribute(null, "uri", _last_fname);
@@ -108,9 +116,24 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onResume() {
+        // FIXME: is it needed to restart main here?
+        // http://stackoverflow.com/questions/15658687/how-to-use-onresume
+        // it seems to be needed, otherwise cameraview will not work after settings-screen
         super.onResume();
         Log.d("onResume", "---------------------------- startMain");
         startMain();
+
+    }
+
+    @Override
+    protected void onStop(){
+        super.onStop();
+        if (mCamera != null) {
+            mCamera.stopPreview();
+            mCamera.release();
+            mCamera = null;
+        }
+        _main_runs = false;
     }
 
     @Override
@@ -121,6 +144,7 @@ public class MainActivity extends Activity {
             mCamera.release();
             mCamera = null;
         }
+        _main_runs = false;
     }
 
     @Override
@@ -146,7 +170,7 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        final Button settingsButton = (Button) findViewById(R.id.button_settings);
+        final ImageButton settingsButton = (ImageButton) findViewById(R.id.button_settings);
         settingsButton.setOnClickListener(
                 new android.view.View.OnClickListener(){
                     @Override
@@ -162,10 +186,11 @@ public class MainActivity extends Activity {
                 }
         );
 
-        final Button captureButton = (Button) findViewById(R.id.button_capture);
-        captureButton.setBackgroundColor(Color.GREEN);
+        final ImageButton captureButton = (ImageButton) findViewById(R.id.button_capture);
+        //captureButton.setBackgroundColor(Color.GREEN);
 
         textview_coords = (TextView) findViewById(R.id.textview_coords);
+        textview_fps = (TextView) findViewById(R.id.textview_fps);
 
         mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         bestProvider = mLocationManager.getBestProvider(criteria, false);
@@ -197,7 +222,8 @@ public class MainActivity extends Activity {
 
                             handler.postDelayed(runnable, 100);
                             recording = true;
-                            captureButton.setBackgroundColor(Color.RED);
+                            //captureButton.setBackgroundColor(Color.RED);
+                            captureButton.setImageResource(R.mipmap.button_icon_rec_on);
                         }else{
                             handler.removeCallbacks(runnable);
                             recording = false;
@@ -212,7 +238,8 @@ public class MainActivity extends Activity {
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
-                            captureButton.setBackgroundColor(Color.GREEN);
+                            //captureButton.setBackgroundColor(Color.GREEN);
+                            captureButton.setImageResource(R.mipmap.button_icon_rec);
                         }
                     }
                 }
@@ -237,38 +264,40 @@ public class MainActivity extends Activity {
 
     /* start camera preview and enable button */
     private void startMain(){
-        mCamera = getCameraInstance();
+        if(!_main_runs) {
+            _main_runs = true;
+            mCamera = getCameraInstance();
 
-        parameters = mCamera.getParameters();
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+            parameters = mCamera.getParameters();
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
-        String selected_res = prefs.getString("pref_resolutions", ""); // this gives the value
-        Log.d("---", "Selected resolution index was: |" + selected_res + "|" );
-        if (selected_res != "") {
-            final List<android.hardware.Camera.Size> sizes = parameters.getSupportedPictureSizes();
-            Integer width = sizes.get(Integer.parseInt(selected_res)).width;
-            Integer height = sizes.get(Integer.parseInt(selected_res)).height;
-            parameters.setPictureSize(width, height);
-            mCamera.setParameters(parameters);
-            Log.d("Settings", "Set image resolution to " + width + "x" + height);
+            String selected_res = prefs.getString("pref_resolutions", ""); // this gives the value
+            Log.d("---", "Selected resolution index was: |" + selected_res + "|");
+            if (selected_res != "") {
+                final List<android.hardware.Camera.Size> sizes = parameters.getSupportedPictureSizes();
+                Integer width = sizes.get(Integer.parseInt(selected_res)).width;
+                Integer height = sizes.get(Integer.parseInt(selected_res)).height;
+                parameters.setPictureSize(width, height);
+                mCamera.setParameters(parameters);
+                Log.d("Settings", "Set image resolution to " + width + "x" + height);
+            }
+
+            String selected_fr = prefs.getString("pref_framerates", "");
+            if (selected_fr != "") {
+                _framerate = Integer.parseInt(selected_fr);
+                Log.d("Settings", "Set framerate to " + _framerate);
+            }
+
+            // Create Preview view and set it as the content of our activity.
+            // this HAS to be done in order to able to take pictures (WTF?!)
+            mPreview = new CameraPreview(this, mCamera);
+            RelativeLayout preview = (RelativeLayout) findViewById(R.id.camera_preview);
+            preview.addView(mPreview);
+
+            /*********************************** GPS ************************/
+            mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+            //mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 10, 10, mLocationListener);
         }
-
-        String selected_fr = prefs.getString("pref_framerates", "");
-        if (selected_fr != ""){
-            _framerate = Integer.parseInt(selected_fr);
-            Log.d("Settings", "Set framerate to " + _framerate);
-        }
-
-        // Create Preview view and set it as the content of our activity.
-        // this HAS to be done in order to able to take pictures (WTF?!)
-        mPreview = new CameraPreview(this, mCamera);
-        RelativeLayout preview = (RelativeLayout) findViewById(R.id.camera_preview);
-        preview.addView(mPreview);
-
-        /*********************************** GPS ************************/
-        mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-        //mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 10, 10, mLocationListener);
-
     }
 
 
