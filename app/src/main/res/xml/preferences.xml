@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <Preference
+        android:key="about"
+        android:title="About">
+        <intent android:action="com.example.weis.AboutActivity"/>
+    </Preference>
+
     <CheckBoxPreference
     android:key="pref_sync"
     android:title="CheckboxStuff"

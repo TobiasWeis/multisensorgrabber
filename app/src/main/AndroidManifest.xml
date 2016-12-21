@@ -18,12 +18,18 @@
         <activity android:name=".MainActivity" android:screenOrientation="landscape" android:configChanges="orientation|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
         <activity android:name="SettingsActivity" android:screenOrientation="landscape" android:configChanges="orientation|keyboardHidden">
+        </activity>
+
+        <activity android:name="AboutActivity" android:screenOrientation="landscape" android:configChanges="orientation|keyboardHidden">
+            <intent-filter>
+                <action android:name="com.example.weis.AboutActivity" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
         </activity>
     </application>
 
