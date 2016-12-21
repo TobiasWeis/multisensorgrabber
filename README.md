@@ -12,10 +12,13 @@ to **create low-cost, mobile sequence capturing devices**.
 ![Multi-Sensor Grabber](app_screenshot.png "Multi-Sensor Grabber")
 
 ## Currently implemented
-* cquire rights (camera, gps, etc.)
+* Acquire rights (camera, gps, etc.)
 * Fullscreen app with overlayed button start/stop capturing
 * Getting and setting desired image resolution
-* Saving of image frames every 100ms
+* Selection of image resolution
+* Selection of framerates (10,15,...)
+* Frame includes: Timestamp, Image, GPS-data (lat,lon,accuracy,speed) 
+* Save images to folder, metadata to xml-file
 
 ## TODO
 * ~~Settings Activity?~~
