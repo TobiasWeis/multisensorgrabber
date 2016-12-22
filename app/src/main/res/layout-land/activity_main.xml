@@ -31,7 +31,8 @@
         android:layout_marginRight="10dp"
         android:layout_alignParentBottom="true"
         android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true" />
+        android:layout_alignParentEnd="true"
+        android:keepScreenOn="true" />
 
     <TextView
         android:id="@+id/textview_coords"
@@ -48,4 +49,13 @@
         android:textColor="#00ff00"
         android:layout_below="@id/textview_coords"
          />
+
+    <TextView
+        android:id="@+id/textview_battery"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="FPS: 0"
+        android:textColor="#00ff00"
+        android:layout_below="@id/textview_fps"
+        />
 </RelativeLayout>

@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -14,6 +15,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.Uri;
+import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
@@ -52,6 +54,7 @@ public class MainActivity extends Activity {
 
     boolean recording = false;
     private Handler handler = new Handler();
+    private Handler sys_handler = new Handler();
     FileOutputStream fileos;
     XmlSerializer serializer = Xml.newSerializer();
     static File _mediaStorageDir; // sequence directory
@@ -61,6 +64,7 @@ public class MainActivity extends Activity {
 
     TextView textview_coords;
     TextView textview_fps;
+    TextView textview_battery;
 
     LocationManager mLocationManager;
     Criteria criteria = new Criteria();
@@ -70,7 +74,19 @@ public class MainActivity extends Activity {
 
     boolean _main_runs = false;
 
-    private Runnable runnable = new Runnable() {
+    /*
+    this runnable is meant to be called only every other second,
+    to fetch data about the system (e.g. battery state)
+     */
+    private Runnable grab_system_data = new Runnable() {
+        @Override
+        public void run() {
+            textview_battery.setText("BAT: "+getBatteryLevel()+"%");
+            sys_handler.postDelayed(grab_system_data, 1000);
+        }
+    };
+
+    private Runnable grab_frame = new Runnable() {
         @Override
         public void run() {
             if (_pic_returned == true) { // check if picture-take-callback has returned already
@@ -110,7 +126,7 @@ public class MainActivity extends Activity {
                     _ts_lastframe = System.currentTimeMillis();
                 }
             }
-            handler.postDelayed(runnable, 1);
+            handler.postDelayed(grab_frame, 1);
         }
     };
 
@@ -191,6 +207,7 @@ public class MainActivity extends Activity {
 
         textview_coords = (TextView) findViewById(R.id.textview_coords);
         textview_fps = (TextView) findViewById(R.id.textview_fps);
+        textview_battery = (TextView) findViewById(R.id.textview_battery);
 
         mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         bestProvider = mLocationManager.getBestProvider(criteria, false);
@@ -210,6 +227,7 @@ public class MainActivity extends Activity {
                                 serializer.startDocument(null, Boolean.valueOf(true));
                                 serializer.setFeature("http://xmlpull.org/v1/doc/features.html#indent-output", true);
                                 serializer.startTag(null, "sequence");
+                                serializer.attribute(null, "folder", _mediaStorageDir.getAbsolutePath());
                                 String manufacturer = Build.MANUFACTURER;
                                 String model = Build.MODEL;
                                 serializer.attribute(null, "sensor", manufacturer+model);
@@ -220,12 +238,12 @@ public class MainActivity extends Activity {
                                 Log.e("serializer", "IOException: " + e);
                             }
 
-                            handler.postDelayed(runnable, 100);
+                            handler.postDelayed(grab_frame, 100);
                             recording = true;
                             //captureButton.setBackgroundColor(Color.RED);
                             captureButton.setImageResource(R.mipmap.button_icon_rec_on);
                         }else{
-                            handler.removeCallbacks(runnable);
+                            handler.removeCallbacks(grab_frame);
                             recording = false;
                             try {
                                 serializer.endTag(null, "sequence");
@@ -267,6 +285,7 @@ public class MainActivity extends Activity {
         if(!_main_runs) {
             _main_runs = true;
             mCamera = getCameraInstance();
+            handler.postDelayed(grab_system_data, 1);
 
             parameters = mCamera.getParameters();
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
@@ -362,7 +381,7 @@ public class MainActivity extends Activity {
         if (ending == "jpg"){
             mediaFile = new File(_mediaStorageDir.getPath() + File.separator +
                     "IMG_"+ timeStamp + ".jpg");
-            _last_fname = mediaFile.getAbsolutePath();
+            _last_fname ="IMG_"+ timeStamp + ".jpg"; // this goes only to img_uri in xml
             _ts_lastpic = timeStamp;
         } else if(ending == "xml") {
             mediaFile = new File(_mediaStorageDir.getPath() + File.separator +
@@ -372,6 +391,19 @@ public class MainActivity extends Activity {
         }
 
         return mediaFile;
+    }
+
+    public float getBatteryLevel() {
+        Intent batteryIntent = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        int level = batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+        int scale = batteryIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+
+        // Error checking that probably isn't needed but I added just in case.
+        if(level == -1 || scale == -1) {
+            return 50.0f;
+        }
+
+        return ((float)level / (float)scale) * 100.0f;
     }
 
 
