@@ -47,6 +47,7 @@ public class MainActivity extends Activity {
     int MY_PERMISSION_REQUEST = 1;
 
     int _framerate = 10;
+    static String _folder = "";
     long _ts_lastframe = 0;
     static String _last_fname = "";
     static long _ts_lastpic = 0;
@@ -132,13 +133,24 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onResume() {
+        super.onResume();
+        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            Log.d("main", "Requesting permissions");
+
+            ActivityCompat.requestPermissions(this, new String[]{
+                    Manifest.permission.CAMERA,
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE }, MY_PERMISSION_REQUEST);
+        }else {
+            Log.d("main", "Already have permission, not asking");
+            Log.d("gotPermissions", "---------------------------- startMain");
+            startMain();
+        }
         // FIXME: is it needed to restart main here?
         // http://stackoverflow.com/questions/15658687/how-to-use-onresume
         // it seems to be needed, otherwise cameraview will not work after settings-screen
-        super.onResume();
-        Log.d("onResume", "---------------------------- startMain");
-        startMain();
-
     }
 
     @Override
@@ -186,6 +198,11 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // FIXME: there is only really one directory on SD we can possibly write to,
+        // so took this choice from the user...
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        prefs.edit().putString("folderPicker", getExternalFilesDirs(null)[1].toString()).commit();
+
         final ImageButton settingsButton = (ImageButton) findViewById(R.id.button_settings);
         settingsButton.setOnClickListener(
                 new android.view.View.OnClickListener(){
@@ -209,11 +226,6 @@ public class MainActivity extends Activity {
         textview_fps = (TextView) findViewById(R.id.textview_fps);
         textview_battery = (TextView) findViewById(R.id.textview_battery);
 
-        mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        bestProvider = mLocationManager.getBestProvider(criteria, false);
-        mLocationManager.requestLocationUpdates(bestProvider, 10,10, locationListener);
-
-
         captureButton.setOnClickListener(
                 new android.view.View.OnClickListener() {
                     @Override
@@ -221,7 +233,14 @@ public class MainActivity extends Activity {
                         if (!recording) {
                             // get an image from the camera
                             try {
-                                setSequenceDirectory();
+                                _seq_timestamp = System.currentTimeMillis();
+                                _mediaStorageDir = new File(_folder , "multisensorgrabber_" + _seq_timestamp);
+                                if (! _mediaStorageDir.exists()){
+                                    if (! _mediaStorageDir.mkdirs()){
+                                        Log.d("MyCameraApp", "failed to create directory");
+                                    }
+                                }
+
                                 fileos = new FileOutputStream(getOutputMediaFile("xml"));
                                 serializer.setOutput(fileos, "UTF-8");
                                 serializer.startDocument(null, Boolean.valueOf(true));
@@ -263,32 +282,33 @@ public class MainActivity extends Activity {
                 }
         );
 
-
-        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED ||
-                ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
-                ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            Log.d("main", "Requesting permissions");
-
-            ActivityCompat.requestPermissions(this, new String[]{
-                    Manifest.permission.CAMERA,
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE }, MY_PERMISSION_REQUEST);
-        }else {
-            Log.d("main", "Already have permission, not asking");
-            Log.d("gotPermissions", "---------------------------- startMain");
-            startMain();
-        }
     }
 
     /* start camera preview and enable button */
     private void startMain(){
         if(!_main_runs) {
             _main_runs = true;
-            mCamera = getCameraInstance();
-            handler.postDelayed(grab_system_data, 1);
 
-            parameters = mCamera.getParameters();
+            mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+            bestProvider = mLocationManager.getBestProvider(criteria, false);
+            mLocationManager.requestLocationUpdates(bestProvider, 10,10, locationListener);
+
+            handler.postDelayed(grab_system_data, 1);
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+
+            String selected_fr = prefs.getString("pref_framerates", "");
+            if (selected_fr != "") {
+                _framerate = Integer.parseInt(selected_fr);
+                Log.d("Settings", "Set framerate to " + _framerate);
+            }
+
+            // this is the main folder.
+            // sequence folders (_mediaStorageDir) will be sub-directories of this one
+            _folder = prefs.getString("folderPicker", "/");
+
+            mCamera = getCameraInstance();
+            parameters = mCamera.getParameters();
+            //Log.d("Paremters", mCamera.getParameters().flatten());
 
             String selected_res = prefs.getString("pref_resolutions", ""); // this gives the value
             Log.d("---", "Selected resolution index was: |" + selected_res + "|");
@@ -299,12 +319,6 @@ public class MainActivity extends Activity {
                 parameters.setPictureSize(width, height);
                 mCamera.setParameters(parameters);
                 Log.d("Settings", "Set image resolution to " + width + "x" + height);
-            }
-
-            String selected_fr = prefs.getString("pref_framerates", "");
-            if (selected_fr != "") {
-                _framerate = Integer.parseInt(selected_fr);
-                Log.d("Settings", "Set framerate to " + _framerate);
             }
 
             // Create Preview view and set it as the content of our activity.
@@ -362,17 +376,6 @@ public class MainActivity extends Activity {
     private Camera mCamera;
     private CameraPreview mPreview;
 
-    private static void setSequenceDirectory(){
-        _seq_timestamp = System.currentTimeMillis();
-        _mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_PICTURES), "multisensorgrabber_" + _seq_timestamp);
-        if (! _mediaStorageDir.exists()){
-            if (! _mediaStorageDir.mkdirs()){
-                Log.d("MyCameraApp", "failed to create directory");
-            }
-        }
-    }
-
     /** Create a File for saving an image or video */
     private static File getOutputMediaFile(String ending){
         //String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
@@ -390,6 +393,7 @@ public class MainActivity extends Activity {
             return null;
         }
 
+        Log.d("FILE FOR: ", mediaFile.toString());
         return mediaFile;
     }
 

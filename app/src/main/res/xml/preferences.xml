@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+<PreferenceScreen xmlns:tools="http://schemas.android.com/tools"
+    xmlns:android="http://schemas.android.com/apk/res/android">
     <Preference
         android:key="about"
         android:title="About">
@@ -11,6 +12,13 @@
     android:title="CheckboxStuff"
     android:summary="Irgendeinstring"
     android:defaultValue="true" />
+
+    <EditTextPreference
+        android:key="folderPicker"
+        android:title="Choose folder"
+        android:clickable="false"
+        android:editable="false"
+        android:enabled="false" />
 
     <ListPreference
         android:key="pref_resolutions"
