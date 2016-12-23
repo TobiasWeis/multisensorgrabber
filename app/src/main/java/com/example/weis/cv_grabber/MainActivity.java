@@ -200,8 +200,14 @@ public class MainActivity extends Activity {
 
         // FIXME: there is only really one directory on SD we can possibly write to,
         // so took this choice from the user...
+        // FIXME: what if there is no SD-card?
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        prefs.edit().putString("folderPicker", getExternalFilesDirs(null)[1].toString()).commit();
+        try {
+            prefs.edit().putString("folderPicker", getExternalFilesDirs(null)[1].toString()).commit();
+        }catch(Exception e){
+            Toast.makeText(this, "Unable to get external storage dir, defaulting to internal", Toast.LENGTH_LONG);
+            prefs.edit().putString("folderPicker", getExternalFilesDir(null).toString()).commit();
+        }
 
         final ImageButton settingsButton = (ImageButton) findViewById(R.id.button_settings);
         settingsButton.setOnClickListener(
@@ -238,6 +244,8 @@ public class MainActivity extends Activity {
                                 if (! _mediaStorageDir.exists()){
                                     if (! _mediaStorageDir.mkdirs()){
                                         Log.d("MyCameraApp", "failed to create directory");
+                                        Toast.makeText(MainActivity.this, "Could not cretae dir: " + _mediaStorageDir, Toast.LENGTH_LONG);
+                                        return;
                                     }
                                 }
 
@@ -253,6 +261,7 @@ public class MainActivity extends Activity {
                                 serializer.attribute(null, "ts", ""+_seq_timestamp);
                             }catch(FileNotFoundException e){
                                 Log.e("fileos", "Exception: file not found");
+                                Toast.makeText(MainActivity.this, "File not found: " + fileos.toString(), Toast.LENGTH_LONG);
                             }catch(IOException e){
                                 Log.e("serializer", "IOException: " + e);
                             }
@@ -275,7 +284,6 @@ public class MainActivity extends Activity {
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
-                            //captureButton.setBackgroundColor(Color.GREEN);
                             captureButton.setImageResource(R.mipmap.button_icon_rec);
                         }
                     }
