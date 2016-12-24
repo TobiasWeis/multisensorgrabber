@@ -88,8 +88,10 @@ Below is a snippet from an example capture, names are adapted to a database syst
 ```
 
 ## TODO
+* Upload functionality and db-integration in backend
+* Better control of camera parameters (see wiki)
 * ~~Settings Activity?~~
 * ~~choose framerate (and implement)~~
 * ~~gps grabbing~~
-* accel/gyro grabbing
+* ~~accel/gyro grabbing~~
 * Saving: ~~xml~~/sqlite ?
