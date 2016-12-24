@@ -58,4 +58,13 @@
         android:textColor="#00ff00"
         android:layout_below="@id/textview_fps"
         />
+
+    <TextView
+        android:id="@+id/textview_sensors"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Sensors:"
+        android:textColor="#00ff00"
+        android:layout_below="@id/textview_battery"
+        />
 </RelativeLayout>

@@ -10,6 +10,10 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.hardware.Camera;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
@@ -53,6 +57,14 @@ public class MainActivity extends Activity {
     static long _ts_lastpic = 0;
     static long _seq_timestamp = 0;
 
+    double _gyro_head = 0.;
+    double _gyro_pitch = 0.;
+    double _gyro_roll = 0.;
+
+    double _accel_x = 0.;
+    double _accel_y = 0.;
+    double _accel_z = 0.;
+
     boolean recording = false;
     private Handler handler = new Handler();
     private Handler sys_handler = new Handler();
@@ -66,6 +78,7 @@ public class MainActivity extends Activity {
     TextView textview_coords;
     TextView textview_fps;
     TextView textview_battery;
+    TextView textview_sensors;
 
     LocationManager mLocationManager;
     Criteria criteria = new Criteria();
@@ -118,6 +131,12 @@ public class MainActivity extends Activity {
                         serializer.attribute(null, "img_h", ""+parameters.getPictureSize().height);
                         serializer.attribute(null, "speed", ""+_loc.getSpeed());
                         serializer.attribute(null, "ts_cam", ""+_ts_lastpic);
+                        serializer.attribute(null, "avelx", ""+_gyro_roll);
+                        serializer.attribute(null, "avely", ""+_gyro_head);
+                        serializer.attribute(null, "avelz", ""+_gyro_pitch);
+                        serializer.attribute(null, "accx", ""+_accel_x);
+                        serializer.attribute(null, "accy", ""+_accel_y);
+                        serializer.attribute(null, "accz", ""+_accel_z);
 
                         serializer.endTag(null, "Frame");
                         serializer.flush();
@@ -231,6 +250,7 @@ public class MainActivity extends Activity {
         textview_coords = (TextView) findViewById(R.id.textview_coords);
         textview_fps = (TextView) findViewById(R.id.textview_fps);
         textview_battery = (TextView) findViewById(R.id.textview_battery);
+        textview_sensors = (TextView) findViewById(R.id.textview_sensors);
 
         captureButton.setOnClickListener(
                 new android.view.View.OnClickListener() {
@@ -259,6 +279,8 @@ public class MainActivity extends Activity {
                                 String model = Build.MODEL;
                                 serializer.attribute(null, "sensor", manufacturer+model);
                                 serializer.attribute(null, "ts", ""+_seq_timestamp);
+                                serializer.attribute(null, "whitebalance", mCamera.getParameters().get("whitebalance").toString());
+
                             }catch(FileNotFoundException e){
                                 Log.e("fileos", "Exception: file not found");
                                 Toast.makeText(MainActivity.this, "File not found: " + fileos.toString(), Toast.LENGTH_LONG);
@@ -292,6 +314,39 @@ public class MainActivity extends Activity {
 
     }
 
+    private final SensorEventListener sel = new SensorEventListener() {
+        public void onSensorChanged(SensorEvent event) {
+            if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
+                updateOrientation(event.values[0], event.values[1], event.values[2]);
+            }
+            if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+                updateAccels(event.values[0], event.values[1], event.values[2]);
+            }
+
+            textview_sensors.setText("head: " + String.format("%.01f", _gyro_head) +
+                                    " pitch: " + String.format("%.01f", _gyro_pitch) +
+                                    " roll: " + String.format("%.01f", _gyro_roll) +
+                                    " ax " + String.format("%.01f", _accel_x) +
+                                    " ay " + String.format("%.01f", _accel_y) +
+                                    " az " + String.format("%.01f", _accel_z));
+        }
+
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+    };
+
+    private void updateOrientation(float heading, float pitch, float roll) {
+
+        _gyro_head = heading;
+        _gyro_pitch = pitch;
+        _gyro_roll = roll;
+    }
+
+    private void updateAccels(float x, float y, float z){
+        _accel_x = x;
+        _accel_y = y;
+        _accel_z = z;
+    }
+
     /* start camera preview and enable button */
     private void startMain(){
         if(!_main_runs) {
@@ -300,6 +355,14 @@ public class MainActivity extends Activity {
             mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
             bestProvider = mLocationManager.getBestProvider(criteria, false);
             mLocationManager.requestLocationUpdates(bestProvider, 10,10, locationListener);
+
+            SensorManager sm = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
+            sm.registerListener(sel,
+                    sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
+                    SensorManager.SENSOR_DELAY_UI);
+            sm.registerListener(sel,
+                    sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
+                    SensorManager.SENSOR_DELAY_UI);
 
             handler.postDelayed(grab_system_data, 1);
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
@@ -316,7 +379,7 @@ public class MainActivity extends Activity {
 
             mCamera = getCameraInstance();
             parameters = mCamera.getParameters();
-            //Log.d("Paremters", mCamera.getParameters().flatten());
+            Log.d("Paremters", mCamera.getParameters().flatten());
 
             String selected_res = prefs.getString("pref_resolutions", ""); // this gives the value
             Log.d("---", "Selected resolution index was: |" + selected_res + "|");
