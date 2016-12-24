@@ -20,7 +20,29 @@ to **create low-cost, mobile sequence capturing devices**.
 * Frame includes: Timestamp, Image, GPS-data (lat,lon,accuracy,speed) 
 * Save images to folder, metadata to xml-file
 
-Current XML-Output:
+Below is a snippet from an example capture, names are adapted to a database system I use in the backend:
+
+| tag | name | meaning |
+| --- | --- | --- |
+|sequence | folder | storage folder on phone |
+| | sensor | identifier of the sensor (here: phone) used |
+| | ts | timestamp when sequence has started |
+| | whitebalance | value the whitebalance has been set to |
+| frame |  uri | filename (relative to sequence folder) |
+| | lat | Latitude |
+| | lon | Longitude |
+| | acc | gps accuracy as reported by locationManager |
+| | img_w | width of image |
+| | img_h | height of imgae |
+| | speed | speed in m/s as reported by locationManager |
+| | ts_cam | timestamp of image acquisition |
+| | avelx | angular velocity around x-axis |
+| | avely | angular velocity around y-axis |
+| | avelz | angular velocity around z-axis |
+| | accx | accelerometer value about x-axis |
+| | accy | accelerometer value about y-axis |
+| | accz | accelerometer value about z-axis |
+
 ```xml
 <sequence 
     folder="/storage/0000-0000/Android/data/com.example.weis.cv_grabber/files/multisensorgrabber_1482584089332" 
