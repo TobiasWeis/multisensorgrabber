@@ -21,12 +21,13 @@ to **create low-cost, mobile sequence capturing devices**.
 * Save images to folder, metadata to xml-file
 
 Current XML-Output:
-`
+```xml
 <sequence 
     folder="/storage/0000-0000/Android/data/com.example.weis.cv_grabber/files/multisensorgrabber_1482583173808" 
     sensor="samsungSM-G903F" 
     ts="1482583173808" 
-    whitebalance="auto">
+    whitebalance="auto"
+>
 
     <Frame 
         uri="IMG_1482583174241.jpg" 
@@ -58,7 +59,8 @@ Current XML-Output:
 
     ...
 </sequence>
-`
+```
+
 ## TODO
 * ~~Settings Activity?~~
 * ~~choose framerate (and implement)~~
