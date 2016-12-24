@@ -7,8 +7,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
-import android.graphics.PorterDuff;
 import android.hardware.Camera;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -96,7 +94,15 @@ public class MainActivity extends Activity {
         @Override
         public void run() {
             textview_battery.setText("BAT: "+getBatteryLevel()+"%");
-            sys_handler.postDelayed(grab_system_data, 1000);
+
+            textview_sensors.setText("head: " + String.format("%.01f", _gyro_head) +
+                    " pitch: " + String.format("%.01f", _gyro_pitch) +
+                    " roll: " + String.format("%.01f", _gyro_roll) +
+                    " ax " + String.format("%.01f", _accel_x) +
+                    " ay " + String.format("%.01f", _accel_y) +
+                    " az " + String.format("%.01f", _accel_z));
+
+            sys_handler.postDelayed(grab_system_data, 500);
         }
     };
 
@@ -106,12 +112,13 @@ public class MainActivity extends Activity {
             if (_pic_returned == true) { // check if picture-take-callback has returned already
                 double diff = System.currentTimeMillis() - _ts_lastframe;
                 if (diff >= (1. / _framerate) * 1000.) {
-                    Log.d("Timecalc", "Diff: " + diff);
+
                     _pic_returned = false;
                     try {
                         mCamera.takePicture(null, null, mPicture);
                     }catch(Exception e){
-                        Log.e("TakePicture", "Exception: ", e);
+                        //Log.e("TakePicture", "Exception: ", e);
+                        Toast.makeText(MainActivity.this, "TakePicture: " + e, Toast.LENGTH_LONG);
                     }
                     bestProvider = mLocationManager.getBestProvider(criteria, false);
                     _loc = mLocationManager.getLastKnownLocation(bestProvider);
@@ -141,7 +148,8 @@ public class MainActivity extends Activity {
                         serializer.endTag(null, "Frame");
                         serializer.flush();
                     }catch(IOException e){
-                        Log.e("serializer", "IOException: " + e);
+                        Toast.makeText(MainActivity.this, "Serializer IOExcept: " + e, Toast.LENGTH_LONG);
+                        //Log.e("serializer", "IOException: " + e);
                     }
                     _ts_lastframe = System.currentTimeMillis();
                 }
@@ -156,20 +164,15 @@ public class MainActivity extends Activity {
         if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED ||
                 ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
                 ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            Log.d("main", "Requesting permissions");
 
             ActivityCompat.requestPermissions(this, new String[]{
                     Manifest.permission.CAMERA,
                     Manifest.permission.ACCESS_FINE_LOCATION,
                     Manifest.permission.WRITE_EXTERNAL_STORAGE }, MY_PERMISSION_REQUEST);
         }else {
-            Log.d("main", "Already have permission, not asking");
-            Log.d("gotPermissions", "---------------------------- startMain");
+            Log.d("OnResume", "--------------------------------- startMain");
             startMain();
         }
-        // FIXME: is it needed to restart main here?
-        // http://stackoverflow.com/questions/15658687/how-to-use-onresume
-        // it seems to be needed, otherwise cameraview will not work after settings-screen
     }
 
     @Override
@@ -185,6 +188,7 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onPause() {
+        Log.d("OnPause", "--------------------------------- onPause has been called!");
         super.onPause();
         if (mCamera != null) {
             mCamera.stopPreview();
@@ -200,7 +204,7 @@ public class MainActivity extends Activity {
         if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
                 ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
                 ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-            Log.d("onRequestPermisstion", "---------------------------- startMain");
+            Log.d("OnPermResult", "--------------------------------- startMain");
             startMain();
         }
     };
@@ -234,11 +238,11 @@ public class MainActivity extends Activity {
                     @Override
                     public void onClick(View v){
                         Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
-                        if (mCamera != null) {
+                        /*if (mCamera != null) {
                             mCamera.stopPreview();
                             mCamera.release();
                             mCamera = null;
-                        }
+                        }*/
                         startActivity(intent);
                     }
                 }
@@ -263,7 +267,6 @@ public class MainActivity extends Activity {
                                 _mediaStorageDir = new File(_folder , "multisensorgrabber_" + _seq_timestamp);
                                 if (! _mediaStorageDir.exists()){
                                     if (! _mediaStorageDir.mkdirs()){
-                                        Log.d("MyCameraApp", "failed to create directory");
                                         Toast.makeText(MainActivity.this, "Could not cretae dir: " + _mediaStorageDir, Toast.LENGTH_LONG);
                                         return;
                                     }
@@ -282,10 +285,9 @@ public class MainActivity extends Activity {
                                 serializer.attribute(null, "whitebalance", mCamera.getParameters().get("whitebalance").toString());
 
                             }catch(FileNotFoundException e){
-                                Log.e("fileos", "Exception: file not found");
                                 Toast.makeText(MainActivity.this, "File not found: " + fileos.toString(), Toast.LENGTH_LONG);
                             }catch(IOException e){
-                                Log.e("serializer", "IOException: " + e);
+                                Toast.makeText(MainActivity.this, "Serializer IOExcept: " + e, Toast.LENGTH_LONG);
                             }
 
                             handler.postDelayed(grab_frame, 100);
@@ -322,20 +324,13 @@ public class MainActivity extends Activity {
             if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
                 updateAccels(event.values[0], event.values[1], event.values[2]);
             }
-
-            textview_sensors.setText("head: " + String.format("%.01f", _gyro_head) +
-                                    " pitch: " + String.format("%.01f", _gyro_pitch) +
-                                    " roll: " + String.format("%.01f", _gyro_roll) +
-                                    " ax " + String.format("%.01f", _accel_x) +
-                                    " ay " + String.format("%.01f", _accel_y) +
-                                    " az " + String.format("%.01f", _accel_z));
         }
 
         public void onAccuracyChanged(Sensor sensor, int accuracy) {}
     };
 
+    // FIXME: are semaphores needed here?
     private void updateOrientation(float heading, float pitch, float roll) {
-
         _gyro_head = heading;
         _gyro_pitch = pitch;
         _gyro_roll = roll;
@@ -370,7 +365,6 @@ public class MainActivity extends Activity {
             String selected_fr = prefs.getString("pref_framerates", "");
             if (selected_fr != "") {
                 _framerate = Integer.parseInt(selected_fr);
-                Log.d("Settings", "Set framerate to " + _framerate);
             }
 
             // this is the main folder.
@@ -379,28 +373,36 @@ public class MainActivity extends Activity {
 
             mCamera = getCameraInstance();
             parameters = mCamera.getParameters();
-            Log.d("Paremters", mCamera.getParameters().flatten());
+
+            // FIXME: implement this in a way to enable user to save to file and send to me!
+            //Log.d("Paremters", mCamera.getParameters().flatten());
 
             String selected_res = prefs.getString("pref_resolutions", ""); // this gives the value
-            Log.d("---", "Selected resolution index was: |" + selected_res + "|");
             if (selected_res != "") {
                 final List<android.hardware.Camera.Size> sizes = parameters.getSupportedPictureSizes();
                 Integer width = sizes.get(Integer.parseInt(selected_res)).width;
                 Integer height = sizes.get(Integer.parseInt(selected_res)).height;
                 parameters.setPictureSize(width, height);
                 mCamera.setParameters(parameters);
-                Log.d("Settings", "Set image resolution to " + width + "x" + height);
             }
 
             // Create Preview view and set it as the content of our activity.
             // this HAS to be done in order to able to take pictures (WTF?!)
-            mPreview = new CameraPreview(this, mCamera);
-            RelativeLayout preview = (RelativeLayout) findViewById(R.id.camera_preview);
-            preview.addView(mPreview);
+            if(mPreview == null){
+                mPreview = new CameraPreview(this, mCamera);
+                RelativeLayout preview = (RelativeLayout) findViewById(R.id.camera_preview);
+                preview.addView(mPreview);
+
+            }else{
+                RelativeLayout preview = (RelativeLayout) findViewById(R.id.camera_preview);
+
+                mPreview = new CameraPreview(this, mCamera);
+                preview.removeAllViews();
+                preview.addView(mPreview);
+            }
 
             /*********************************** GPS ************************/
             mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-            //mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 10, 10, mLocationListener);
         }
     }
 
@@ -409,10 +411,9 @@ public class MainActivity extends Activity {
 
         @Override
         public void onPictureTaken(byte[] data, Camera camera) {
-
             File pictureFile = getOutputMediaFile("jpg");
             if (pictureFile == null){
-                Log.d(TAG, "Error creating media file, check storage permissions: ");
+                Toast.makeText(MainActivity.this, "Could not create PictureFile", Toast.LENGTH_LONG);
                 return;
             }
 
@@ -422,13 +423,10 @@ public class MainActivity extends Activity {
                 fos.close();
                 _pic_returned = true;
             } catch (FileNotFoundException e) {
-                Log.d(TAG, "File not found: " + e.getMessage());
+                Toast.makeText(MainActivity.this, "FileNotFoundExc: "+e.getMessage(), Toast.LENGTH_LONG);
             } catch (IOException e) {
-                Log.d(TAG, "Error accessing file: " + e.getMessage());
+                Toast.makeText(MainActivity.this, "IOexcept: "+ e.getMessage(), Toast.LENGTH_LONG);
             }
-            /* restart the picture-taking from here,
-             * b/c we have to wait for the callback to finish
-             */
         }
     };
 
@@ -464,7 +462,6 @@ public class MainActivity extends Activity {
             return null;
         }
 
-        Log.d("FILE FOR: ", mediaFile.toString());
         return mediaFile;
     }
 
@@ -480,6 +477,4 @@ public class MainActivity extends Activity {
 
         return ((float)level / (float)scale) * 100.0f;
     }
-
-
 }

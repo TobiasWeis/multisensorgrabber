@@ -10,6 +10,7 @@ import android.hardware.Camera;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.widget.Toast;
 
 import java.io.IOException;
 
@@ -38,9 +39,9 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             mCamera.setPreviewDisplay(holder);
             mCamera.startPreview();
         } catch (IOException e) {
-            Log.d(TAG, "Error setting camera preview: " + e.getMessage());
+            Toast.makeText(getContext(), "Error setting cam preview: " + e.getMessage(), Toast.LENGTH_LONG);
         } catch(Exception e){
-            Log.e(TAG, "Exception: " + e);
+            Toast.makeText(getContext(), "Exception: " + e.getMessage(), Toast.LENGTH_LONG);
         }
     }
 
@@ -73,7 +74,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             mCamera.startPreview();
 
         } catch (Exception e){
-            Log.d(TAG, "Error starting camera preview: " + e.getMessage());
+            Toast.makeText(getContext(), "Error starting cam preview: " + e.getMessage(), Toast.LENGTH_LONG);
         }
     }
 }
