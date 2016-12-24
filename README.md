@@ -23,38 +23,42 @@ to **create low-cost, mobile sequence capturing devices**.
 Current XML-Output:
 ```xml
 <sequence 
-    folder="/storage/0000-0000/Android/data/com.example.weis.cv_grabber/files/multisensorgrabber_1482583173808" 
+    folder="/storage/0000-0000/Android/data/com.example.weis.cv_grabber/files/multisensorgrabber_1482584089332" 
     sensor="samsungSM-G903F" 
-    ts="1482583173808" 
+    ts="1482584089332" 
     whitebalance="auto"
 >
-
     <Frame 
-        uri="IMG_1482583174241.jpg" 
+        uri="IMG_1482584089688.jpg" 
         lat="50.16629447649796" 
         lon="8.658641955498677" 
         acc="48.0" 
         img_w="960" 
         img_h="720" 
         speed="0.0" 
-        ts_cam="1482583174241" 
-        avelx="-0.012356800958514214" 
-        avely="0.020737236365675926" 
-        avelz="-0.014283332042396069"
+        ts_cam="1482584089688" 
+        avelx="-0.11246156692504883" 
+        avely="0.05926918238401413" 
+        avelz="-0.20069235563278198" 
+        accx="9.873687744140625" 
+        accy="0.18809446692466736" 
+        accz="1.9354127645492554"
     />
-
     <Frame 
-        uri="IMG_1482583174530.jpg" 
+        uri="IMG_1482584089809.jpg" 
         lat="50.16629447649796" 
         lon="8.658641955498677" 
         acc="48.0" 
         img_w="960" 
         img_h="720" 
         speed="0.0" 
-        ts_cam="1482583174530" 
-        avelx="0.0036221654154360294" 
-        avely="-0.002698581200093031" 
-        avelz="-0.02280544675886631"
+        ts_cam="1482584089809" 
+        avelx="0.06863339245319366" 
+        avely="0.09868396818637848" 
+        avelz="-0.20708394050598145" 
+        accx="9.767146110534668" 
+        accy="-0.00823006872087717" 
+        accz="1.6624737977981567"
     />
 
     ...
