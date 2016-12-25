@@ -375,7 +375,7 @@ public class MainActivity extends Activity {
             parameters = mCamera.getParameters();
 
             // FIXME: implement this in a way to enable user to save to file and send to me!
-            //Log.d("Paremters", mCamera.getParameters().flatten());
+            Log.d("Paremters", mCamera.getParameters().flatten());
 
             String selected_res = prefs.getString("pref_resolutions", ""); // this gives the value
             if (selected_res != "") {
@@ -383,8 +383,13 @@ public class MainActivity extends Activity {
                 Integer width = sizes.get(Integer.parseInt(selected_res)).width;
                 Integer height = sizes.get(Integer.parseInt(selected_res)).height;
                 parameters.setPictureSize(width, height);
-                mCamera.setParameters(parameters);
             }
+
+            String focusmode = prefs.getString("pref_focusmode", "infinity");
+            Log.d("focusmode:", focusmode);
+            parameters.setFocusMode(focusmode);
+
+            mCamera.setParameters(parameters);
 
             // Create Preview view and set it as the content of our activity.
             // this HAS to be done in order to able to take pictures (WTF?!)

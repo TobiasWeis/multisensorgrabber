@@ -30,6 +30,16 @@
         android:summary="%s"/>
 
     <ListPreference
+        android:key="pref_focusmode"
+        android:summary="%s"
+        android:title="Focusmode"
+        android:dialogTitle="Focusmode"
+        android:entries="@array/settings_fm_entries"
+        android:entryValues="@array/settings_fm_values"
+        android:defaultValue="@string/settings_fm_default_value" />
+
+
+    <ListPreference
         android:key="pref_framerates"
         android:summary="%s"
         android:title="@string/settings_fr_title"
