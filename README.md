@@ -1,6 +1,7 @@
 # Multi-Sensor Grabber
 
--ATTENTION: this version is no longer maintained-
+__ATTENTION: this version is no longer maintained__
+
 It has been based on the deprecated camera(1) API, with which it is not possible to manually
 set camera parameters. The new project which offers the same functionality PLUS manual parameter control
 can be found here: https://github.com/TobiasWeis/android-multisensorgrabber-2
